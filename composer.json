@@ -1,0 +1,36 @@
+{
+    "name": "pt-mindkitchen/yii2-sentry",
+    "description": "Yii2 integration for Sentry",
+    "keywords": ["logging", "errors", "yii2", "sentry", "v3", "sdk"],
+    "type": "library",
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Ivan Yaremchuk",
+            "email": "ivan.yaremchuk@gmail.com"
+        }
+    ],
+    "config": {
+        "sort-packages": true
+    },
+    "require": {
+        "php": "^7.2",
+        "sentry/sentry": "^3.11",
+        "yiisoft/yii2": "~2.0"
+    },
+    "suggest": {
+        "php-http/curl-client": "Recommended HTTP client for Sentry SDK",
+        "http-interop/http-factory-guzzle": "Recommended HTTP factory for Sentry SDK"
+    },
+    "autoload": {
+        "psr-4": {
+            "MindKitchen\\Yii2Sentry\\": "src/"
+        }
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ]
+}
