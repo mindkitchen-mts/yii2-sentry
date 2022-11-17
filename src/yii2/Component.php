@@ -158,6 +158,13 @@ class Component extends \yii\base\Component implements BootstrapInterface
         });
     }
 
+    public function addTag($tag, $value) {
+        // Set "route" tag
+        \Sentry\SentrySdk::getCurrentHub()->configureScope(function (Scope $scope) use ($tag, $value): void {
+            $scope->setTag($tag, $value);
+        });
+    }
+
     public function addSpan(string $operationName) {
         $parent = \Sentry\SentrySdk::getCurrentHub()->getSpan();
         $span = null;
