@@ -12,6 +12,7 @@ use Sentry\Integration\IntegrationInterface;
 use Sentry\SentrySdk;
 use Sentry\State\HubInterface;
 use Sentry\State\Scope;
+use Sentry\Tracing\Span;
 use yii\base\ActionEvent;
 use yii\base\BootstrapInterface;
 use yii\base\Controller;
@@ -147,7 +148,7 @@ class Component extends \yii\base\Component implements BootstrapInterface
 
             // Setup the context for the expensive operation span
             $spanContext = new \Sentry\Tracing\SpanContext();
-            $spanContext->setOp('expensive_operation');
+            $spanContext->setOp('request_processing');
 
             // Start the span
             $span = $transaction->startChild($spanContext);
@@ -155,5 +156,32 @@ class Component extends \yii\base\Component implements BootstrapInterface
             // Set the current span to the span we just started
             \Sentry\SentrySdk::getCurrentHub()->setSpan($span);
         });
+    }
+
+    public function addSpan(string $operationName) {
+        $parent = \Sentry\SentrySdk::getCurrentHub()->getSpan();
+        $span = null;
+
+        // Check if we have a parent span (this is the case if we started a transaction earlier)
+        if ($parent !== null) {
+            $context = new \Sentry\Tracing\SpanContext();
+            $context->setOp($operationName);
+            $span = $parent->startChild($context);
+
+            // Set the current span to the span we just started
+            \Sentry\SentrySdk::getCurrentHub()->setSpan($span);
+        }
+
+        return [$span, $parent];
+    }
+
+    public function finishSpan(Span $span, Span $parent) {
+        // We only have a span if we started a span earlier
+        if ($span !== null) {
+            $span->finish();
+
+            // Restore the current span back to the parent span
+            \Sentry\SentrySdk::getCurrentHub()->setSpan($parent);
+        }
     }
 }
