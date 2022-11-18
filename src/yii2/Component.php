@@ -45,6 +45,16 @@ class Component extends \yii\base\Component implements BootstrapInterface
     public $appBasePath = '@app';
 
     /**
+     * @var string
+     */
+    public $serviceTag;
+
+    /**
+     * @var string
+     */
+    public $serviceTagName = 'yii';
+
+    /**
      * @var HubInterface
      */
     protected $hub;
@@ -88,6 +98,10 @@ class Component extends \yii\base\Component implements BootstrapInterface
      */
     public function bootstrap($app)
     {
+        if ($this->serviceTag) {
+            $this->addTag($this->serviceTagName, $this->serviceTag);
+        }
+
         Event::on(User::class, User::EVENT_AFTER_LOGIN, function (UserEvent $event) {
             SentrySdk::getCurrentHub()->configureScope(function (Scope $scope) use ($event): void {
                 $scope->setUser([
