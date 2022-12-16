@@ -45,12 +45,11 @@ class ProfileTarget extends Target
             ])) continue;
 
             if ($level == Logger::LEVEL_PROFILE_BEGIN) {
-                $parent = \Sentry\SentrySdk::getCurrentHub()->getSpan();
-                $span = Yii::$app->sentry->addSpan($text, $timestamp);
+                [$span, $parent] = Yii::$app->sentry->addSpan($text, $timestamp);
             }
 
             elseif ($level == Logger::LEVEL_PROFILE_END) {
-                Yii::$app->sentry->finishSpan($span, $parent, $timestamp);
+                Yii::$app->sentry->finishSpan($span, null, $timestamp);
             }
 
         }
