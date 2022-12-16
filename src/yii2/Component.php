@@ -179,7 +179,7 @@ class Component extends \yii\base\Component implements BootstrapInterface
         });
     }
 
-    public function addSpan(string $operationName) {
+    public function addSpan(string $operationName, $timestamp = null) {
         $parent = \Sentry\SentrySdk::getCurrentHub()->getSpan();
         $span = null;
 
@@ -188,6 +188,9 @@ class Component extends \yii\base\Component implements BootstrapInterface
             $context = new \Sentry\Tracing\SpanContext();
             $context->setOp($operationName);
             $span = $parent->startChild($context);
+            if ($timestamp) {
+                $span->setStartTimestamp($timestamp);
+            }
 
             // Set the current span to the span we just started
             \Sentry\SentrySdk::getCurrentHub()->setSpan($span);
@@ -196,13 +199,17 @@ class Component extends \yii\base\Component implements BootstrapInterface
         return [$span, $parent];
     }
 
-    public function finishSpan(Span $span, Span $parent) {
+    public function finishSpan(Span $span = null, Span $parent = null, $timestamp = null) {
         // We only have a span if we started a span earlier
-        if ($span !== null) {
-            $span->finish();
-
-            // Restore the current span back to the parent span
-            \Sentry\SentrySdk::getCurrentHub()->setSpan($parent);
+        if (!$span) {
+            $span = \Sentry\SentrySdk::getCurrentHub()->getSpan();
+        }
+        if ($span) {
+            $span->finish($timestamp);
+            if ($parent) {
+                // Restore the current span back to the parent span
+                \Sentry\SentrySdk::getCurrentHub()->setSpan($parent);
+            }
         }
     }
 }
