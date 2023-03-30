@@ -64,6 +64,7 @@ class Component extends \yii\base\Component implements BootstrapInterface
     const PARENT_ID = "parentId";
     const TRACE_ID = "traceId";
     const TRACE_STARTED = "traceStarted";
+    const TRACE_COUNTER = "traceCounter";
 
     public function init()
     {
@@ -169,14 +170,20 @@ class Component extends \yii\base\Component implements BootstrapInterface
                 if (\Yii::$app->session->has(self::TRACE_ID)) {
                     $traceId = new TraceId(\Yii::$app->session->get(self::TRACE_ID));
                     $traceStarted = \Yii::$app->session->get(self::TRACE_STARTED);
+                    $counter = \Yii::$app->session->get(self::TRACE_COUNTER);
                 } else {
                     $traceId = TraceId::generate();
                     $traceStarted = microtime(true);
+                    $counter = 1;
                     \Yii::$app->session->set(self::TRACE_ID, strval($traceId));
                     \Yii::$app->session->set(self::TRACE_STARTED, $traceStarted);
+                    \Yii::$app->session->set(self::TRACE_COUNTER, $counter);
                 }
                 $transactionContext->setTraceId($traceId);
-                $transactionContext->setData(["begins" => microtime(true) - $traceStarted]);
+                $transactionContext->setTags([
+                    "begins" => microtime(true) - $traceStarted,
+                    "counter" => $counter,
+                ]);
 
                 if (\Yii::$app->session->has(self::PARENT_SAMPLED)) {
                     $transactionContext->setParentSampled(\Yii::$app->session->get(self::PARENT_SAMPLED));
