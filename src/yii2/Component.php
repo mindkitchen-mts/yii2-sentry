@@ -63,6 +63,7 @@ class Component extends \yii\base\Component implements BootstrapInterface
     const PARENT_SAMPLED = "parentSampled";
     const PARENT_ID = "parentId";
     const TRACE_ID = "traceId";
+    const TRACE_STARTED = "traceStarted";
 
     public function init()
     {
@@ -165,6 +166,18 @@ class Component extends \yii\base\Component implements BootstrapInterface
             $transactionContext->setOp('http.request');
 
             if (\Yii::$app instanceof \yii\web\Application) {
+                if (\Yii::$app->session->has(self::TRACE_ID)) {
+                    $traceId = new TraceId(\Yii::$app->session->get(self::TRACE_ID));
+                    $traceStarted = \Yii::$app->session->get(self::TRACE_STARTED);
+                } else {
+                    $traceId = TraceId::generate();
+                    $traceStarted = microtime(true);
+                    \Yii::$app->session->set(self::TRACE_ID, strval($traceId));
+                    \Yii::$app->session->set(self::TRACE_STARTED, $traceStarted);
+                }
+                $transactionContext->setTraceId($traceId);
+                $transactionContext->setData(["begins" => microtime(true) - $traceStarted]);
+
                 if (\Yii::$app->session->has(self::PARENT_SAMPLED)) {
                     $transactionContext->setParentSampled(\Yii::$app->session->get(self::PARENT_SAMPLED));
                     $transactionContext->setParentSpanId(\Yii::$app->session->get(self::PARENT_ID));
@@ -172,13 +185,6 @@ class Component extends \yii\base\Component implements BootstrapInterface
                 if (\Yii::$app->session->has(self::PARENT_ID)) {
                     $transactionContext->setParentSpanId(\Yii::$app->session->get(self::PARENT_ID));
                 }
-                if (\Yii::$app->session->has(self::TRACE_ID)) {
-                    $traceId = new TraceId(\Yii::$app->session->get(self::TRACE_ID));
-                } else {
-                    $traceId = TraceId::generate();
-                    \Yii::$app->session->set(self::TRACE_ID, strval($traceId));
-                }
-                $transactionContext->setTraceId($traceId);
             }
 
             // Start the transaction
