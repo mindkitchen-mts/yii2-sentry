@@ -57,7 +57,7 @@ class Integration extends BaseObject implements IntegrationInterface
         if ($headers->has('REMOTE_ADDR')) {
             $requestData['env']['REMOTE_ADDR'] = $headers->get('REMOTE_ADDR');
         }
-        $requestData['cookies'] = $request->getCookies();
+        $requestData['cookies'] = json_encode($request->getCookies()->toArray());
         $requestData['headers'] = $headers->toArray();
 
         // Process request body
