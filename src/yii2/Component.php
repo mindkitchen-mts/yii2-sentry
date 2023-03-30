@@ -13,6 +13,7 @@ use Sentry\SentrySdk;
 use Sentry\State\HubInterface;
 use Sentry\State\Scope;
 use Sentry\Tracing\Span;
+use Sentry\Tracing\TraceId;
 use yii\base\ActionEvent;
 use yii\base\BootstrapInterface;
 use yii\base\Controller;
@@ -58,6 +59,9 @@ class Component extends \yii\base\Component implements BootstrapInterface
      * @var HubInterface
      */
     protected $hub;
+
+    const PARENT_SAMPLED = "parentSampled";
+    const TRACE_ID = "traceId";
 
     public function init()
     {
@@ -120,6 +124,10 @@ class Component extends \yii\base\Component implements BootstrapInterface
             // Set the current span back to the transaction since we just finished the previous spanå
             \Sentry\SentrySdk::getCurrentHub()->setSpan($transaction);
 
+            if (\Yii::$app instanceof \yii\web\Application) {
+                \Yii::$app->session->set(self::PARENT_SAMPLED, $transaction->getSampled());
+            }
+
             // Finish the transaction
             $transaction->finish();
         });
@@ -153,6 +161,19 @@ class Component extends \yii\base\Component implements BootstrapInterface
             $transactionContext = new \Sentry\Tracing\TransactionContext();
             $transactionContext->setName($event->action->getUniqueId());
             $transactionContext->setOp('http.request');
+
+            if (\Yii::$app instanceof \yii\web\Application) {
+                if (\Yii::$app->session->has(self::PARENT_SAMPLED)) {
+                    $transactionContext->setParentSampled(\Yii::$app->session->get(self::PARENT_SAMPLED));
+                }
+                if (\Yii::$app->session->has(self::TRACE_ID)) {
+                    $traceId = new TraceId(\Yii::$app->session->get(self::TRACE_ID));
+                } else {
+                    $traceId = TraceId::generate();
+                    \Yii::$app->session->set(self::TRACE_ID, strval($traceId));
+                }
+                $transactionContext->setTraceId($traceId);
+            }
 
             // Start the transaction
             $transaction = \Sentry\startTransaction($transactionContext);
