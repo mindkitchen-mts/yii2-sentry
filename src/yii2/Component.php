@@ -61,6 +61,7 @@ class Component extends \yii\base\Component implements BootstrapInterface
     protected $hub;
 
     const PARENT_SAMPLED = "parentSampled";
+    const PARENT_ID = "parentId";
     const TRACE_ID = "traceId";
 
     public function init()
@@ -126,6 +127,7 @@ class Component extends \yii\base\Component implements BootstrapInterface
 
             if (\Yii::$app instanceof \yii\web\Application) {
                 \Yii::$app->session->set(self::PARENT_SAMPLED, $transaction->getSampled());
+                \Yii::$app->session->set(self::PARENT_ID, $transaction->getSpanId());
             }
 
             // Finish the transaction
@@ -165,6 +167,10 @@ class Component extends \yii\base\Component implements BootstrapInterface
             if (\Yii::$app instanceof \yii\web\Application) {
                 if (\Yii::$app->session->has(self::PARENT_SAMPLED)) {
                     $transactionContext->setParentSampled(\Yii::$app->session->get(self::PARENT_SAMPLED));
+                    $transactionContext->setParentSpanId(\Yii::$app->session->get(self::PARENT_ID));
+                }
+                if (\Yii::$app->session->has(self::PARENT_ID)) {
+                    $transactionContext->setParentSpanId(\Yii::$app->session->get(self::PARENT_ID));
                 }
                 if (\Yii::$app->session->has(self::TRACE_ID)) {
                     $traceId = new TraceId(\Yii::$app->session->get(self::TRACE_ID));
