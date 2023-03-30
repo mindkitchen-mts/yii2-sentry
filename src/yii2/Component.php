@@ -173,16 +173,15 @@ class Component extends \yii\base\Component implements BootstrapInterface
                     $counter = \Yii::$app->session->get(self::TRACE_COUNTER) + 1;
                 } else {
                     $traceId = TraceId::generate();
-                    $traceStarted = floor(microtime(true) * 1000);
+                    $traceStarted = microtime(true);
                     $counter = 1;
                     \Yii::$app->session->set(self::TRACE_ID, strval($traceId));
                     \Yii::$app->session->set(self::TRACE_STARTED, $traceStarted);
                     \Yii::$app->session->set(self::TRACE_COUNTER, $counter);
                 }
                 $transactionContext->setTraceId($traceId);
-                $transactionContext->setData(["starts" => floor(microtime(true) * 1000) - $traceStarted]);
                 $transactionContext->setTags([
-                    "begins" => intval(floor(microtime(true) * 1000) - $traceStarted),
+                    "begins" => microtime(true) - $traceStarted,
                     "counter" => $counter,
                 ]);
 
