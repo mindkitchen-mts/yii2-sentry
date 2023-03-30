@@ -170,7 +170,7 @@ class Component extends \yii\base\Component implements BootstrapInterface
                 if (\Yii::$app->session->has(self::TRACE_ID)) {
                     $traceId = new TraceId(\Yii::$app->session->get(self::TRACE_ID));
                     $traceStarted = \Yii::$app->session->get(self::TRACE_STARTED);
-                    $counter = \Yii::$app->session->get(self::TRACE_COUNTER);
+                    $counter = \Yii::$app->session->get(self::TRACE_COUNTER) + 1;
                 } else {
                     $traceId = TraceId::generate();
                     $traceStarted = microtime(true);
