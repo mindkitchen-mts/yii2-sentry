@@ -180,6 +180,7 @@ class Component extends \yii\base\Component implements BootstrapInterface
                     \Yii::$app->session->set(self::TRACE_COUNTER, $counter);
                 }
                 $transactionContext->setTraceId($traceId);
+                $transactionContext->setData(["starts" => microtime(true) - $traceStarted]);
                 $transactionContext->setTags([
                     "begins" => microtime(true) - $traceStarted,
                     "counter" => $counter,
