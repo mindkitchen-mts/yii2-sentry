@@ -46,14 +46,14 @@ class Component extends \yii\base\Component implements BootstrapInterface
     public $appBasePath = '@app';
 
     /**
-     * @var string
+     * @var array
      */
-    public $serviceTag;
+    public $extraTags = [];
 
     /**
-     * @var string
+     * @var array
      */
-    public $serviceTagName = 'yii';
+    public $tracingGroups = [];
 
     /**
      * @var HubInterface
@@ -65,12 +65,12 @@ class Component extends \yii\base\Component implements BootstrapInterface
     const TRACE_ID = "traceId";
     const TRACE_STARTED = "traceStarted";
     const TRACE_COUNTER = "traceCounter";
+    const TRACE_LAST_ACTION = "traceAction";
 
     public function init()
     {
         parent::init();
 
-        $basePath = \Yii::getAlias($this->appBasePath);
         $options = array_merge([
             'dsn' => $this->dsn,
         ], $this->sentrySettings);
@@ -105,8 +105,8 @@ class Component extends \yii\base\Component implements BootstrapInterface
      */
     public function bootstrap($app)
     {
-        if ($this->serviceTag) {
-            $this->addTag($this->serviceTagName, $this->serviceTag);
+        foreach($this->extraTags as $tagName => $tagValue) {
+            $this->addTag($tagName, $tagValue);
         }
 
         Event::on(User::class, User::EVENT_AFTER_LOGIN, function (UserEvent $event) {
@@ -164,21 +164,47 @@ class Component extends \yii\base\Component implements BootstrapInterface
             // Setup context for the full transaction
             $transactionContext = new \Sentry\Tracing\TransactionContext();
             $transactionContext->setName($event->action->getUniqueId());
-            $transactionContext->setOp('http.request');
+
 
             if (\Yii::$app instanceof \yii\web\Application) {
+                $transactionContext->setOp('http.request');
+
+                // Set "url" tag
+                SentrySdk::getCurrentHub()->configureScope(function (Scope $scope): void {
+                    $scope->setTag('url', \Yii::$app->request->getQueryString());
+                });
+
+                $restartTrace = true;
                 if (\Yii::$app->session->has(self::TRACE_ID)) {
+                    $restartTrace = false;
                     $traceId = new TraceId(\Yii::$app->session->get(self::TRACE_ID));
                     $traceStarted = \Yii::$app->session->get(self::TRACE_STARTED);
                     $counter = \Yii::$app->session->get(self::TRACE_COUNTER) + 1;
-                } else {
+                    $lastRoute = \Yii::$app->session->get(self::TRACE_LAST_ACTION);
+                    if (!empty($this->tracingGroups)) {
+                        foreach ($this->tracingGroups as $group) {
+                            if (in_array($lastRoute, $group)) {
+                                if (!in_array($route, $group)) {
+                                    $restartTrace = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if ($restartTrace) {
                     $traceId = TraceId::generate();
                     $traceStarted = microtime(true);
                     $counter = 1;
                     \Yii::$app->session->set(self::TRACE_ID, strval($traceId));
                     \Yii::$app->session->set(self::TRACE_STARTED, $traceStarted);
                     \Yii::$app->session->set(self::TRACE_COUNTER, $counter);
+                    \Yii::$app->session->set(self::TRACE_LAST_ACTION, $route);
+                    \Yii::$app->session->remove(self::PARENT_SAMPLED);
+                    \Yii::$app->session->remove(self::PARENT_ID);
                 }
+
                 $transactionContext->setTraceId($traceId);
                 $transactionContext->setTags([
                     "begins" => microtime(true) - $traceStarted,
